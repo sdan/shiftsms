@@ -40,7 +40,8 @@ func CreateClient() *http.Client {
 
 	return config.Client(oauth1.NoContext, token)
 }
-func registerWebhook() {
+
+func RegisterWebhook() {
 	fmt.Println("Registering webhook...")
 	httpClient := CreateClient()
 
@@ -60,10 +61,10 @@ func registerWebhook() {
 	}
 	fmt.Println(data)
 	fmt.Println("Webhook id of " + data["id"].(string) + " has been registered")
-	subscribeWebhook()
+	SubscribeWebhook()
 }
 
-func subscribeWebhook() {
+func SubscribeWebhook() {
 	fmt.Println("Subscribing webapp...")
 	client := CreateClient()
 	path := "https://api.twitter.com/1.1/account_activity/all/" + os.Getenv("WEBHOOK_ENV") + "/subscriptions.json"
