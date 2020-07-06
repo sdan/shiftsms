@@ -54,26 +54,65 @@ func WebhookHandler(writer http.ResponseWriter, request *http.Request) {
 	fmt.Println("Handler called")
 	//Read the body of the tweet
 	body, _ := ioutil.ReadAll(request.Body)
+	// fmt.Println(string(body))
 	//Initialize a webhok load obhject for json decoding
 	var load client.WebhookLoad
 	err := json.Unmarshal(body, &load)
 	if err != nil {
 		fmt.Println("An error occured: " + err.Error())
 	}
-	fmt.Println("LOAD: ", load)
-	// //Check if it was a tweet_create_event and tweet was in the payload and it was not tweeted by the bot
-	// if len(load.TweetCreateEvent) < 1 || load.UserId == load.TweetCreateEvent[0].User.IdStr {
-	// 	return
-	// }
-	// //Send Hello world as a reply to the tweet, replies need to begin with the handles
-	// //of accounts they are replying to
-	// _, err = client.SendTweet("@"+load.TweetCreateEvent[0].User.Handle+" Hello World", load.TweetCreateEvent[0].IdStr)
-	// if err != nil {
-	// 	fmt.Println("An error occured:")
-	// 	fmt.Println(err.Error())
-	// } else {
-	// 	fmt.Println("Tweet sent successfully")
-	// }
+
+	if load.DirectMessageEvent == nil {
+		fmt.Println("Not a DM")
+	} else {
+
+		// fmt.Println("LOAD: ", load)
+		// fmt.Println("UserID: ", load.UserId)
+		// fmt.Println("DM: ", load.DirectMessageEvent[0].(map[string]interface{})["message_create"].(map[string]interface{})["message_data"].(map[string]interface{})["text"])
+		// fmt.Println("To: ", load.DirectMessageEvent[0].(map[string]interface{})["message_create"].(map[string]interface{})["target"].(map[string]interface{})["recipient_id"])
+		// fmt.Println("From: ", load.DirectMessageEvent[0].(map[string]interface{})["message_create"].(map[string]interface{})["sender_id"])
+		// fmt.Println("MD: ", load.Metadata)
+		// for k, v := range load.Metadata {
+		// 	fmt.Println("key", k)
+		// 	fmt.Println("val", v)
+		// }
+
+		// tostring := load.DirectMessageEvent[0].(map[string]interface{})["message_create"].(map[string]interface{})["target"].(map[string]interface{})["recipient_id"].(string)
+		// fromstring := load.DirectMessageEvent[0].(map[string]interface{})["message_create"].(map[string]interface{})["sender_id"].(string)
+
+		// // if typeErr != nil {
+		// // 	fmt.Error(typeErr)
+		// // }
+		// fmt.Println("\n\n\n\n")
+		// fmt.Println(load.Metadata[fromint].(map[string]interface{})["name"])
+		// fmt.Println(load.Metadata[toint].(map[string]interface{})["name"])
+
+		dmtext := load.DirectMessageEvent[0].(map[string]interface{})["message_create"].(map[string]interface{})["message_data"].(map[string]interface{})["text"]
+		tostring := load.DirectMessageEvent[0].(map[string]interface{})["message_create"].(map[string]interface{})["target"].(map[string]interface{})["recipient_id"].(string)
+		// fromstring := load.DirectMessageEvent[0].(map[string]interface{})["message_create"].(map[string]interface{})["sender_id"].(string)
+		if load.UserId == tostring {
+			fmt.Println(dmtext)
+		}
+		// fmt.Println("User1: ", load.Metadata.User1.Handle)
+		// fmt.Println("User2: ", load.Metadata.User2.Handle)
+		// // var user1 client.User
+		// // var user2 client.User
+		// fmt.Println("md int: ", load.Metadata.(map[int]interface{}))
+
+		// //Check if it was a tweet_create_event and tweet was in the payload and it was not tweeted by the bot
+		// if len(load.TweetCreateEvent) < 1 || load.UserId == load.TweetCreateEvent[0].User.IdStr {
+		// 	return
+		// }
+		// //Send Hello world as a reply to the tweet, replies need to begin with the handles
+		// //of accounts they are replying to
+		// _, err = client.SendTweet("@"+load.TweetCreateEvent[0].User.Handle+" Hello World", load.TweetCreateEvent[0].IdStr)
+		// if err != nil {
+		// 	fmt.Println("An error occured:")
+		// 	fmt.Println(err.Error())
+		// } else {
+		// 	fmt.Println("Tweet sent successfully")
+		// }
+	}
 }
 
 func CrcCheck(writer http.ResponseWriter, request *http.Request) {

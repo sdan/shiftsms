@@ -13,9 +13,9 @@ import (
 
 //Struct to parse webhook load
 type WebhookLoad struct {
-	UserId             string        `json:"for_user_id"`
-	DirectMessageEvent []interface{} `json:"direct_message_events"`
-	Metadata           interface{}   `json:"apps"`
+	UserId             string                 `json:"for_user_id,omitempty"`
+	DirectMessageEvent []interface{}          `json:"direct_message_events,omitempty"`
+	Metadata           map[string]interface{} `json:"users,omitempty"`
 }
 
 //Struct to parse DM
@@ -27,14 +27,14 @@ type DirectMessage struct {
 	Message     string
 }
 
-type Metadata struct {
-	User1 User
-	User2 User
-}
+// type Metadata struct {
+// 	User1 User
+// 	User2 User
+// }
 
 //Struct to parse user
 type User struct {
-	Id     int
+	Id     int    `json:"id"`
 	Name   string `json:"name"`
 	Handle string `json:"screen_name"`
 }
