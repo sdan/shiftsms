@@ -7,4 +7,5 @@ require (
 	github.com/dghubble/oauth1 v0.6.0
 	github.com/gorilla/mux v1.7.4
 	github.com/joho/godotenv v1.3.0
+	github.com/sfreiberg/gotwilio v0.0.0-20200424172909-47a95c1c632a
 )

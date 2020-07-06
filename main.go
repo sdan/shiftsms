@@ -14,7 +14,10 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
 	client "github.com/sdan/shiftsms/client"
+	tw "github.com/sfreiberg/gotwilio"
 )
+
+// var twilio *tw.Twilio
 
 func main() {
 	//Load env
@@ -31,6 +34,7 @@ func main() {
 	} else {
 		fmt.Println("No registration")
 	}
+
 	//Create a new Mux Handler
 	m := mux.NewRouter()
 	//Listen to the base url and send a response
@@ -93,6 +97,15 @@ func WebhookHandler(writer http.ResponseWriter, request *http.Request) {
 		if load.UserId == tostring {
 			fmt.Println(dmtext)
 		}
+		// 16502756958
+		accountSid := os.Getenv("TWILIO_SID")
+		authToken := os.Getenv("TWILIO_AUTH")
+		twilio := tw.NewTwilioClient(accountSid, authToken)
+		from := "+16502756958"
+		to := "+14087469016"
+		fmt.Println("sent sms", dmtext.(string))
+		twilio.SendSMS(from, to, dmtext.(string), "", "")
+
 		// fmt.Println("User1: ", load.Metadata.User1.Handle)
 		// fmt.Println("User2: ", load.Metadata.User2.Handle)
 		// // var user1 client.User
