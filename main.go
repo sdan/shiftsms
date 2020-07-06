@@ -210,13 +210,11 @@ func WebhookHandler(writer http.ResponseWriter, request *http.Request) {
 			if berr != nil {
 				fmt.Println(berr)
 			}
-
-			// 16502756958
 			accountSid := os.Getenv("TWILIO_SID")
 			authToken := os.Getenv("TWILIO_AUTH")
 			twilio := tw.NewTwilioClient(accountSid, authToken)
-			from := "+"
-			to := "+"
+			from := os.Getenv("FROMPHONE")
+			to := os.Getenv("TOPHONE")
 			fmt.Println("sent sms", dmtext.(string))
 			twilio.SendSMS(from, to, tostringName+"(@"+tostringScreenName+"): "+dmtext.(string), "", "")
 		} else {
