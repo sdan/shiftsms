@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/base64"
@@ -10,6 +11,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
@@ -18,8 +20,24 @@ import (
 )
 
 // var twilio *tw.Twilio
+// var lastUserHandle *string
+// var lastUserName *string
+// var lastUserID *string
 
 func main() {
+	zerr := os.Unsetenv("lastUserName")
+	aerr := os.Unsetenv("lastUserID")
+	berr := os.Unsetenv("lastUserHandle")
+	if zerr != nil {
+		fmt.Println(zerr)
+	}
+	if aerr != nil {
+		fmt.Println(aerr)
+	}
+	if berr != nil {
+		fmt.Println(berr)
+	}
+
 	//Load env
 	err := godotenv.Load()
 	if err != nil {
@@ -45,6 +63,7 @@ func main() {
 	//Listen to crc check and handle
 	m.HandleFunc("/webhook/twitter", CrcCheck).Methods("GET")
 	m.HandleFunc("/webhook/twitter", WebhookHandler).Methods("POST")
+	m.HandleFunc("/webhook/twilio", SMSHandler).Methods("POST")
 
 	//Start Server
 	server := &http.Server{
@@ -54,6 +73,81 @@ func main() {
 	server.ListenAndServe()
 }
 
+// type SMSMessage struct {
+// 	ToCountry string
+// }
+
+type lastUserState struct {
+	lastUserHandle string
+	lastUserName   string
+	lastUserID     string
+}
+
+//Twilio Consumer
+func SMSHandler(writer http.ResponseWriter, request *http.Request) {
+	fmt.Println("SMS Recieved")
+	request.ParseForm()
+	// for k, v := range request.Form {
+	// 	fmt.Println("key:", k)
+	// 	fmt.Println("value:", v)
+	// }
+	fmt.Println("msg:", request.Form["Body"][0])
+	go SendDM(request.Form["Body"][0])
+	// body, _ := ioutil.ReadAll(request.Body)
+
+	// var load SMSMessage
+	// err := json.Unmarshal(body, &load)
+	// if err != nil {
+	// 	fmt.Println("An error occured: " + err.Error())
+	// }
+
+	// // fmt.Println(request.Body)
+	// // var insms string
+	// // err := json.Unmarshal(body, &insms)
+	// // if err != nil {
+	// // 	fmt.Println("An error occured: " + err.Error())
+	// // }
+	// fmt.Println(load)
+
+}
+
+// type DMStuct struct {
+// 	event SendEvent
+// }
+
+// type SendEvent struct {
+// 	typeMessage    string
+// 	message_create SendMessageCreate
+// }
+
+// type SendMessageCreate struct {
+// 	target       map[string]interface{}
+// 	message_data map[string]interface{}
+// }
+
+func SendDM(text string) {
+	path := "https://api.twitter.com/1.1/direct_messages/events/new.json"
+	httpClient := client.CreateClient()
+	// {"event": {"type": "message_create", "message_create": {"target": {"recipient_id": "RECIPIENT_USER_ID"}, "message_data": {"text": "Hello World!"}}}}
+	// var sendthis DMStuct
+	lastUserID := os.Getenv("lastUserID")
+
+	payloadtext := `{"event": {"type": "message_create", "message_create": {"target": {"recipient_id": "RECIPIENT_USER_ID"}, "message_data": {"text": "INPUTTEXTHERE"}}}}`
+	payloadtext = strings.Replace(payloadtext, "RECIPIENT_USER_ID", lastUserID, 1)
+	payloadtext = strings.Replace(payloadtext, "INPUTTEXTHERE", text, 1)
+	var jsonStr = []byte(payloadtext)
+	// sendthis := DMStuct
+
+	// jsonValue, _ := json.Marshal(sendthis)
+
+	resp, err := httpClient.Post(path, "application/json", bytes.NewBuffer(jsonStr))
+	if err != nil {
+		fmt.Println("oopsies", err)
+	}
+	fmt.Println("respoe:", resp)
+}
+
+//Twitter Consumer
 func WebhookHandler(writer http.ResponseWriter, request *http.Request) {
 	fmt.Println("Handler called")
 	//Read the body of the tweet
@@ -89,23 +183,45 @@ func WebhookHandler(writer http.ResponseWriter, request *http.Request) {
 		// // }
 		// fmt.Println("\n\n\n\n")
 		// fmt.Println(load.Metadata[fromint].(map[string]interface{})["name"])
-		// fmt.Println(load.Metadata[toint].(map[string]interface{})["name"])
-
 		dmtext := load.DirectMessageEvent[0].(map[string]interface{})["message_create"].(map[string]interface{})["message_data"].(map[string]interface{})["text"]
 		tostring := load.DirectMessageEvent[0].(map[string]interface{})["message_create"].(map[string]interface{})["target"].(map[string]interface{})["recipient_id"].(string)
+		fromstring := load.DirectMessageEvent[0].(map[string]interface{})["message_create"].(map[string]interface{})["sender_id"].(string)
+		tostringName := load.Metadata[fromstring].(map[string]interface{})["name"].(string)
+		tostringScreenName := load.Metadata[fromstring].(map[string]interface{})["screen_name"].(string)
 		// fromstring := load.DirectMessageEvent[0].(map[string]interface{})["message_create"].(map[string]interface{})["sender_id"].(string)
 		if load.UserId == tostring {
-			fmt.Println(dmtext)
-		}
-		// 16502756958
-		accountSid := os.Getenv("TWILIO_SID")
-		authToken := os.Getenv("TWILIO_AUTH")
-		twilio := tw.NewTwilioClient(accountSid, authToken)
-		from := "+16502756958"
-		to := "+14087469016"
-		fmt.Println("sent sms", dmtext.(string))
-		twilio.SendSMS(from, to, dmtext.(string), "", "")
+			fmt.Println(tostringName+" (@"+tostringScreenName+")", "sent you: ", dmtext)
+			// *lastUserName = tostringName
+			// *lastUserID = tostring
+			// *lastUserHandle = tostringScreenName
 
+			// databasePass = os.Getenv("DATABASE_PASS")
+			// fmt.Printf("Database Password: %s\n", databasePass)
+
+			err := os.Setenv("lastUserName", tostringName)
+			aerr := os.Setenv("lastUserID", fromstring)
+			berr := os.Setenv("lastUserHandle", tostringScreenName)
+			if err != nil {
+				fmt.Println(err)
+			}
+			if aerr != nil {
+				fmt.Println(aerr)
+			}
+			if berr != nil {
+				fmt.Println(berr)
+			}
+
+			// 16502756958
+			accountSid := os.Getenv("TWILIO_SID")
+			authToken := os.Getenv("TWILIO_AUTH")
+			twilio := tw.NewTwilioClient(accountSid, authToken)
+			from := "+16502756958"
+			to := "+14087469016"
+			fmt.Println("sent sms", dmtext.(string))
+			twilio.SendSMS(from, to, tostringName+"(@"+tostringScreenName+"): "+dmtext.(string), "", "")
+		} else {
+			fmt.Println("user sent via sms")
+		}
 		// fmt.Println("User1: ", load.Metadata.User1.Handle)
 		// fmt.Println("User2: ", load.Metadata.User2.Handle)
 		// // var user1 client.User
